@@ -9,8 +9,8 @@ import PrivateRoute from './PrivateRoute';
 import Layout from './components/Layout';
 import FamilyList from './components/FamilyList';
 import MemberList from './components/MemberList';
-import FamilyDetails from './components/FamilyDetails';
-
+import FamilyDetailsView from './components/FamilyDetails';
+import AnbiyamManager  from './components/AnbiyamManager';
 function App() {
   return (
     <BrowserRouter>
@@ -56,6 +56,16 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/anbiyam"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <AnbiyamManager />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
           <Route
           path="/memlist"
           element={
@@ -71,7 +81,7 @@ function App() {
           element={
             <PrivateRoute>
               <Layout>
-                <FamilyDetails />
+                <FamilyDetailsView />
               </Layout>
             </PrivateRoute>
           }

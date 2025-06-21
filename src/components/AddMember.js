@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import API_BASE_URL from '../config'; // <-- Import API base
+import {
+  Box, TextField, Checkbox, FormControlLabel, FormControl,
+  InputLabel, Select, MenuItem, Typography, Button,
+} from '@mui/material';
+import API_BASE_URL from '../config';
+
 const AddMember = () => {
-const params = new URLSearchParams(window.location.search);
-const [familyId, setFamilyId] = useState(params.get('family_id') || '');
+  const params = new URLSearchParams(window.location.search);
+  const [familyId, setFamilyId] = useState(params.get('family_id') || '');
   const [familyHead, setFamilyHead] = useState('');
   const [familyMobile, setFamilyMobile] = useState('');
   const [name, setName] = useState('');
@@ -17,20 +22,21 @@ const [familyId, setFamilyId] = useState(params.get('family_id') || '');
   const [churchGroup, setChurchGroup] = useState('');
   const [active, setActive] = useState(true);
   const [baptismDate, setBaptismDate] = useState('');
+  const [baptismPlace, setBaptismPlace] = useState('');
   const [holyCommunionDate, setHolyCommunionDate] = useState('');
   const [holyCommunionPlace, setHolyCommunionPlace] = useState('');
   const [confirmationDate, setConfirmationDate] = useState('');
   const [confirmationPlace, setConfirmationPlace] = useState('');
   const [marriageDate, setMarriageDate] = useState('');
   const [marriagePlace, setMarriagePlace] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [sex, setSex] = useState('');
+  const [headAsMember, setHeadAsMember] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [headAsMember, setHeadAsMember] = useState(false);
-  const [baptismPlace, setBaptismPlace] = useState('');
-const [sex, setSex] = useState('');
   const token = localStorage.getItem('token');
 
-  // Calculate age from dob whenever dob changes
+  // Calculate age when DOB changes
   useEffect(() => {
     if (!dob) {
       setAge('');
@@ -46,7 +52,7 @@ const [sex, setSex] = useState('');
     setAge(calculatedAge >= 0 ? calculatedAge.toString() : '');
   }, [dob]);
 
-  // Fetch family head name & mobile when familyId changes
+  // Fetch family head and mobile when familyId changes
   useEffect(() => {
     if (!familyId) {
       setFamilyHead('');
@@ -59,11 +65,14 @@ const [sex, setSex] = useState('');
     }
     const fetchFamilyDetails = async () => {
       try {
-      const res = await axios.get(`${API_BASE_URL}/family/${familyId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await axios.get(`${API_BASE_URL}/family/${familyId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setFamilyHead(res.data.head_name || '');
         setFamilyMobile(res.data.mobile_number || '');
         if (headAsMember) {
           setName(res.data.head_name || '');
+          setRelationship('Head');
         }
         setError('');
       } catch {
@@ -76,18 +85,19 @@ const [sex, setSex] = useState('');
     fetchFamilyDetails();
   }, [familyId, headAsMember, token]);
 
-  // Handle checkbox toggle
- const toggleHeadAsMember = (checked) => {
-  setHeadAsMember(checked);
-  if (checked) {
-    setName(familyHead);
-    setRelationship('Head'); // <-- Set relationship to Head
-  } else {
-    setName('');
-    setRelationship(''); // <-- Clear relationship
-  }
-};
+  // Handle toggle for Head as Member checkbox
+  const handleToggleHeadAsMember = (checked) => {
+    setHeadAsMember(checked);
+    if (checked) {
+      setName(familyHead);
+      setRelationship('Head');
+    } else {
+      setName('');
+      setRelationship('');
+    }
+  };
 
+  // Handle form submit: Add Member
   const handleAddMember = async () => {
     setMessage('');
     setError('');
@@ -98,38 +108,35 @@ const [sex, setSex] = useState('');
     }
 
     try {
-      const res = await axios.post(
-        `${API_BASE_URL}/member/add`,
-        {
-          family_id: familyId,
-          name,
-          age: age ? parseInt(age) : null,
-          dob,
-          marital_status: maritalStatus || null,
-          relationship: relationship || null,
-          qualification: qualification || null,
-          profession: profession || null,
-          residing_here: residingHere,
-          church_group: churchGroup || null,
-          active: active,
-          baptism_date: baptismDate || null,
-          baptism_place: baptismPlace || null, // <-- Add this line
-          holy_communion_date: holyCommunionDate || null,
-          holy_communion_place: holyCommunionPlace || null,
-          confirmation_date: confirmationDate || null,
-          confirmation_place: confirmationPlace || null,
-          marriage_date: marriageDate || null,
-          marriage_place: marriagePlace || null,
-           sex: sex || null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await axios.post(`${API_BASE_URL}/member/add`, {
+        family_id: familyId,
+        name,
+        age: age ? parseInt(age) : null,
+        dob,
+        marital_status: maritalStatus || null,
+        relationship: relationship || null,
+        qualification: qualification || null,
+        profession: profession || null,
+        residing_here: residingHere,
+        church_group: churchGroup || null,
+        active: active,
+        baptism_date: baptismDate || null,
+        baptism_place: baptismPlace || null,
+        holy_communion_date: holyCommunionDate || null,
+        holy_communion_place: holyCommunionPlace || null,
+        confirmation_date: confirmationDate || null,
+        confirmation_place: confirmationPlace || null,
+        marriage_date: marriageDate || null,
+        marriage_place: marriagePlace || null,
+        sex: sex || null,
+        mobile: mobile || null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       setMessage(`Member ${res.data.name} added successfully. Member ID: ${res.data.member_id}`);
-      setError('');
-      // Reset form except familyId so user can add multiple members
+
+      // Clear form fields after success
       setName('');
       setDob('');
       setAge('');
@@ -141,249 +148,371 @@ const [sex, setSex] = useState('');
       setChurchGroup('');
       setActive(true);
       setBaptismDate('');
+      setBaptismPlace('');
       setHolyCommunionDate('');
       setHolyCommunionPlace('');
       setConfirmationDate('');
       setConfirmationPlace('');
       setMarriageDate('');
       setMarriagePlace('');
+      setMobile('');
+      setSex('');
       setHeadAsMember(false);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to add member. Check Family ID.');
-      setMessage('');
     }
   };
-
   return (
-    <div style={{ maxWidth: 500, margin: 'auto' }}>
-      <h2>Add Member</h2>
+    <Box sx={{ maxWidth: 900, mx: 'auto', mt: 2, px: 2 }}>
+  <Box sx={{
+  backgroundColor: '#FFD700', // Vatican gold
+  color: '#000',              // Black text for contrast
+  p: 2,
+  borderRadius: 2,
+  mb: 3,
+  textAlign: 'center',
+  border: '1px solid #ccc'
+}}>
+  <Typography variant="h6">Add Member</Typography>
+</Box>
+      {/* FAMILY INFO */}
+   {/* FAMILY INFO */}
+<Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 1 }}>
+  <Typography variant="h6" mb={2}>Family Info</Typography>
 
-      <label>
-        Family ID*:
-        <input
-          placeholder="Family ID"
-          value={familyId}
-          onChange={(e) => setFamilyId(e.target.value.toUpperCase())}
-          required
-        />
-      </label>
-      {error === 'Family not found' && <p style={{ color: 'red' }}>Family not found</p>}
+  <Box
+    sx={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 1,
+      mb: 2,
+    }}
+  >
+    <Box sx={{ flexBasis: 'calc(33.33% - 16px)' }}>
+      <TextField
+        label="Family ID*"
+        value={familyId}
+        onChange={(e) => setFamilyId(e.target.value.toUpperCase())}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(33.33% - 16px)' }}>
+      <TextField
+        label="Family Head"
+        value={familyHead}
+        InputProps={{ readOnly: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(33.33% - 16px)' }}>
+      <TextField
+        label="Head Mobile"
+        value={familyMobile}
+        InputProps={{ readOnly: true }}
+        fullWidth
+      />
+    </Box>
+  </Box>
 
-      {familyHead && (
-        <>
-          <p>
-            <strong>Family Head:</strong> {familyHead}
-          </p>
-          <p>
-            <strong>Family Mobile:</strong> {familyMobile}
-          </p>
-        </>
-      )}
+  {error === 'Family not found' && (
+    <Typography color="error" sx={{ mb: 2 }}>
+      {error}
+    </Typography>
+  )}
 
-      <label>
-        <input
-          type="checkbox"
-          checked={headAsMember}
-          onChange={(e) => toggleHeadAsMember(e.target.checked)}
-          disabled={!familyHead}
-        />{' '}
-        Head as Member
-      </label>
-
-      <label>
-        Name*:
-        <input
-          placeholder="Member Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          disabled={headAsMember}
-        />
-      </label>
-<label>
-  Sex:
-  <select value={sex} onChange={(e) => setSex(e.target.value)} required>
-    <option value="">--Select--</option>
-    <option value="Male">Male</option>
-    <option value="Female">Female</option>
-    <option value="Transgender">Transgender</option>
-  </select>
-</label>
-      <label>
-        Date of Birth*:
-        <input
-          type="date"
-          value={dob}
-          onChange={(e) => setDob(e.target.value)}
-          required
-        />
-      </label>
-
-      <label>
-        Age:
-        <input type="number" value={age} readOnly placeholder="Auto-calculated age" />
-      </label>
-
-      <label>
-        Marital Status:
-        <select value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)}>
-          <option value="">--Select--</option>
-          <option value="Single">Single</option>
-          <option value="Married">Married</option>
-          <option value="Divorced">Divorced</option>
-          <option value="Widowed">Widowed</option>
-        </select>
-      </label>
-
-      <label>
-        Relationship:
-        <select value={relationship} onChange={(e) => setRelationship(e.target.value)}>
-          <option value="">--Select--</option>
-          <option value="Head">Head</option>
-          <option value="Son">Son</option>
-          <option value="Spouse">Spouse</option>
-          <option value="Daughter">Daughter</option>
-          <option value="Daughter in law">Daughter in law</option>
-          <option value="Son in law">Son in law</option>
-          <option value="Grandson">Grandson</option>
-          <option value="Grandfather">Grandfather</option>
-          <option value="Grandmother">Grandmother</option>
-          <option value="Grand daughter">Grand daughter</option>
-          <option value="Others">Others</option>
-          <option value="Father in law">Father in law</option>
-          <option value="Mother in law">Mother in law</option>
-        </select>
-      </label>
-
-      <label>
-        Qualification:
-        <input
-          placeholder="Qualification"
-          value={qualification}
-          onChange={(e) => setQualification(e.target.value)}
-        />
-      </label>
-
-      <label>
-        Profession:
-        <select value={profession} onChange={(e) => setProfession(e.target.value)}>
-          <option value="">--Select--</option>
-          <option value="Student">Student</option>
-          <option value="Labour">Labour</option>
-          <option value="Housewife">Housewife</option>
-          <option value="Business">Business</option>
-          <option value="Govt">Govt</option>
-          <option value="Private sector">Private sector</option>
-        </select>
-      </label>
-
-      <label>
-        Residing Here:
-        <input
-          type="checkbox"
-          checked={residingHere}
-          onChange={() => setResidingHere(!residingHere)}
-        />
-      </label>
-
-      <label>
-        Church Group:
-        <input
-          placeholder="Church Group"
-          value={churchGroup}
-          onChange={(e) => setChurchGroup(e.target.value)}
-        />
-      </label>
-
-      <label>
-        Active:
-        <input
-          type="checkbox"
-          checked={active}
-          onChange={() => setActive(!active)}
-        />
-      </label>
-
-      <hr />
-
-      <label>
-        Baptism Date:
-        <input
-          type="date"
-          value={baptismDate}
-          onChange={(e) => setBaptismDate(e.target.value)}
-        />
-      </label>
-<label>
-  Baptism Place:
-  <input
-    placeholder="Place"
-    value={baptismPlace}
-    onChange={(e) => setBaptismPlace(e.target.value)}
+  <FormControlLabel
+    control={
+      <Checkbox
+        checked={headAsMember}
+        onChange={(e) => handleToggleHeadAsMember(e.target.checked)}
+        disabled={!familyHead}
+      />
+    }
+    label="Head as Member"
   />
-</label>
-      <label>
-        Holy Communion Date:
-        <input
-          type="date"
-          value={holyCommunionDate}
-          onChange={(e) => setHolyCommunionDate(e.target.value)}
-        />
-      </label>
+</Box>
+<Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 1 }}>
+  <Typography variant="h6" mb={2}>Member Details</Typography>
 
-      <label>
-        Holy Communion Place:
-        <input
-          placeholder="Place"
-          value={holyCommunionPlace}
-          onChange={(e) => setHolyCommunionPlace(e.target.value)}
-        />
-      </label>
+  {/* Flex container for 4 fields per row */}
+  <Box
+    sx={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 1,
+      mb: 1,
+    }}
+  >
+    {/* Each item takes 25% minus gap */}
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Name*"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        disabled={headAsMember}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Age"
+        value={age}
+        InputProps={{ readOnly: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <FormControl fullWidth>
+        <InputLabel>Sex</InputLabel>
+        <Select
+          value={sex}
+          onChange={(e) => setSex(e.target.value)}
+          label="Sex"
+          disabled={headAsMember}
+        >
+          <MenuItem value="">--Select--</MenuItem>
+          <MenuItem value="Male">Male</MenuItem>
+          <MenuItem value="Female">Female</MenuItem>
+          <MenuItem value="Transgender">Transgender</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Date of Birth*"
+        value={dob}
+        onChange={(e) => setDob(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
+  </Box>
 
-      <label>
-        Confirmation Date:
-        <input
-          type="date"
-          value={confirmationDate}
-          onChange={(e) => setConfirmationDate(e.target.value)}
-        />
-      </label>
+  <Box
+    sx={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 1,
+      mb: 1,
+    }}
+  >
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <FormControl fullWidth>
+        <InputLabel>Marital Status</InputLabel>
+        <Select
+          value={maritalStatus}
+          onChange={(e) => setMaritalStatus(e.target.value)}
+          label="Marital Status"
+          disabled={headAsMember}
+        >
+          <MenuItem value="">--Select--</MenuItem>
+          <MenuItem value="Single">Single</MenuItem>
+          <MenuItem value="Married">Married</MenuItem>
+          <MenuItem value="Divorced">Divorced</MenuItem>
+          <MenuItem value="Widowed">Widowed</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <FormControl fullWidth>
+        <InputLabel>Relationship</InputLabel>
+        <Select
+          value={relationship}
+          onChange={(e) => setRelationship(e.target.value)}
+          label="Relationship"
+          disabled={headAsMember}
+        >
+          <MenuItem value="">--Select--</MenuItem>
+          <MenuItem value="Head">Head</MenuItem>
+          <MenuItem value="Spouse">Spouse</MenuItem>
+          <MenuItem value="Child">Child</MenuItem>
+          <MenuItem value="Parent">Parent</MenuItem>
+          <MenuItem value="Other">Other</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Qualification"
+        value={qualification}
+        onChange={(e) => setQualification(e.target.value)}
+        disabled={headAsMember}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Profession"
+        value={profession}
+        onChange={(e) => setProfession(e.target.value)}
+        disabled={headAsMember}
+        fullWidth
+      />
+    </Box>
+  </Box>
 
-      <label>
-        Confirmation Place:
-        <input
-          placeholder="Place"
-          value={confirmationPlace}
-          onChange={(e) => setConfirmationPlace(e.target.value)}
-        />
-      </label>
+  {/* Residing Here, Church Group, Active, Mobile */}
+  <Box
+    sx={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 1,
+      alignItems: 'center',
+    }}
+  >
+       <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Mobile"
+        value={mobile}
+        onChange={(e) => setMobile(e.target.value)}
+        fullWidth
+      />
+    </Box>
+       <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Church Group"
+        value={churchGroup}
+        onChange={(e) => setChurchGroup(e.target.value)}
+        fullWidth
+      />
+    </Box>
+     <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={residingHere}
+            onChange={(e) => setResidingHere(e.target.checked)}
+          />
+        }
+        label="Residing Here"
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={active}
+            onChange={(e) => setActive(e.target.checked)}
+          />
+        }
+        label="Active"
+      />
+    </Box>
+   </Box>
+</Box>
 
-      <label>
-        Marriage Date:
-        <input
-          type="date"
-          value={marriageDate}
-          onChange={(e) => setMarriageDate(e.target.value)}
-        />
-      </label>
+{/* SACRAMENT DETAILS */}
+<Box sx={{ border: '1px solid #ccc', p: 2, mb: 2, borderRadius: 1 }}>
+  <Typography variant="h6" mb={2}>Sacraments</Typography>
 
-      <label>
-        Marriage Place:
-        <input
-          placeholder="Place"
-          value={marriagePlace}
-          onChange={(e) => setMarriagePlace(e.target.value)}
-        />
-      </label>
+  <Box
+    sx={{
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 1,
+      mb: 1,
+    }}
+  >
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Baptism Date"
+        value={baptismDate}
+        onChange={(e) => setBaptismDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Baptism Place"
+        value={baptismPlace}
+        onChange={(e) => setBaptismPlace(e.target.value)}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Holy Communion Date"
+        value={holyCommunionDate}
+        onChange={(e) => setHolyCommunionDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Holy Communion Place"
+        value={holyCommunionPlace}
+        onChange={(e) => setHolyCommunionPlace(e.target.value)}
+        fullWidth
+      />
+    </Box>
+  </Box>
 
-      <button onClick={handleAddMember} style={{ marginTop: 15 }}>
-        Add Member
-      </button>
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Confirmation Date"
+        value={confirmationDate}
+        onChange={(e) => setConfirmationDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Confirmation Place"
+        value={confirmationPlace}
+        onChange={(e) => setConfirmationPlace(e.target.value)}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Marriage Date"
+        value={marriageDate}
+        onChange={(e) => setMarriageDate(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
+    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        label="Marriage Place"
+        value={marriagePlace}
+        onChange={(e) => setMarriagePlace(e.target.value)}
+        fullWidth
+      />
+    </Box>
+  </Box>
+</Box>
 
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-      {error && error !== 'Family not found' && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
+
+      {message && <Typography color="success.main" mb={2}>{message}</Typography>}
+      {error && <Typography color="error" mb={2}>{error}</Typography>}
+
+  <Button
+  onClick={handleAddMember}
+  fullWidth
+  variant="contained"
+  sx={{
+    backgroundColor: '#FFD700',   // Vatican gold
+    color: '#000',                // Black text for contrast
+    fontWeight: 'bold',
+    '&:hover': {
+      backgroundColor: '#e6c200'  // Slightly darker on hover
+    }
+  }}
+>
+  Add Member
+</Button>
+    </Box>
   );
 };
 
