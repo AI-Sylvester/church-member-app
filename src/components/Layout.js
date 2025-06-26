@@ -121,7 +121,7 @@ const Layout = ({ children }) => {
         <Divider />
         <List>
           {[
-            { path: '/', icon: <DashboardIcon />, label: 'Home' },
+            { path: '/home', icon: <DashboardIcon />, label: 'Home' },
             { path: '/add-family', icon: <GroupAddIcon />, label: 'Create Family' },
             { path: '/add-member', icon: <PersonAddOutlinedIcon />, label: 'Add Member' },
             { path: '/familylist', icon: <ListAltIcon />, label: 'Family List' },

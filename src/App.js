@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import Login from './components/LoginForm';
 import Home from './components/Home';
@@ -10,14 +10,20 @@ import Layout from './components/Layout';
 import FamilyList from './components/FamilyList';
 import MemberList from './components/MemberList';
 import FamilyDetailsView from './components/FamilyDetails';
-import AnbiyamManager  from './components/AnbiyamManager';
+import AnbiyamManager from './components/AnbiyamManager';
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        {/* Default route: Redirect to /login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
+        {/* Protected routes */}
         <Route
-          path="/"
+          path="/home"
           element={
             <PrivateRoute>
               <Layout>
@@ -46,7 +52,7 @@ function App() {
             </PrivateRoute>
           }
         />
-  <Route
+        <Route
           path="/familylist"
           element={
             <PrivateRoute>
@@ -66,7 +72,7 @@ function App() {
             </PrivateRoute>
           }
         />
-          <Route
+        <Route
           path="/memlist"
           element={
             <PrivateRoute>
@@ -76,7 +82,7 @@ function App() {
             </PrivateRoute>
           }
         />
-         <Route
+        <Route
           path="/familydet"
           element={
             <PrivateRoute>
@@ -86,8 +92,6 @@ function App() {
             </PrivateRoute>
           }
         />
-
-
       </Routes>
     </BrowserRouter>
   );
