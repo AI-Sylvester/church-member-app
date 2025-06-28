@@ -164,9 +164,9 @@ const AddMember = () => {
     }
   };
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', mt: 2, px: 2 }}>
+    <Box sx={{  mx: 'auto', mt: 2, px: 2 }}>
   <Box sx={{
-  backgroundColor: '#FFD700', // Vatican gold
+  backgroundColor: '#ededda', // Vatican gold
   color: '#000',              // Black text for contrast
   p: 2,
   borderRadius: 2,
@@ -254,6 +254,16 @@ const AddMember = () => {
         fullWidth
       />
     </Box>
+     <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
+      <TextField
+        type="date"
+        label="Date of Birth*"
+        value={dob}
+        onChange={(e) => setDob(e.target.value)}
+        InputLabelProps={{ shrink: true }}
+        fullWidth
+      />
+    </Box>
     <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
       <TextField
         label="Age"
@@ -278,16 +288,7 @@ const AddMember = () => {
         </Select>
       </FormControl>
     </Box>
-    <Box sx={{ flexBasis: 'calc(25% - 16px)' }}>
-      <TextField
-        type="date"
-        label="Date of Birth*"
-        value={dob}
-        onChange={(e) => setDob(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        fullWidth
-      />
-    </Box>
+   
   </Box>
 
   <Box
@@ -502,7 +503,7 @@ const AddMember = () => {
   fullWidth
   variant="contained"
   sx={{
-    backgroundColor: '#FFD700',   // Vatican gold
+    backgroundColor: '#c5c5be',   // Vatican gold
     color: '#000',                // Black text for contrast
     fontWeight: 'bold',
     '&:hover': {

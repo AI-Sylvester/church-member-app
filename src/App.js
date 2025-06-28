@@ -11,7 +11,8 @@ import FamilyList from './components/FamilyList';
 import MemberList from './components/MemberList';
 import FamilyDetailsView from './components/FamilyDetails';
 import AnbiyamManager from './components/AnbiyamManager';
-
+import AnbiyamFamilyView from './components/AnbiyamFamilies'
+import FamilyMap from './components/FamilyMap';
 function App() {
   return (
     <BrowserRouter>
@@ -68,6 +69,26 @@ function App() {
             <PrivateRoute>
               <Layout>
                 <AnbiyamManager />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/anbiyamfam"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <AnbiyamFamilyView />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+          <Route
+          path="/familymap"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <FamilyMap />
               </Layout>
             </PrivateRoute>
           }

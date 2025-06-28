@@ -1,3 +1,4 @@
+// updated component with enhanced dialog, 5-column layout, and restored View button
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
@@ -18,26 +19,20 @@ import {
   DialogContent,
   DialogActions,
   Grid,
-  TextField
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import API_BASE_URL from '../config';
-
-// Format date as dd-MMM-yyyy
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).replace(/ /g, '-');
-};
 
 const MemberList = () => {
   const [members, setMembers] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [editMember, setEditMember] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const token = localStorage.getItem('token');
@@ -62,21 +57,43 @@ const MemberList = () => {
   }, [token]);
 
   const handleView = (member) => {
-    setSelectedMember(member);
+    setEditMember({ ...member });
+    setEditMode(false);
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (member) => {
+    setEditMember({ ...member });
+    setEditMode(true);
     setDialogOpen(true);
   };
 
   const handleClose = () => {
     setDialogOpen(false);
-    setSelectedMember(null);
+    setEditMember(null);
   };
 
-  // Filtered list based on search
+  const handleSave = async () => {
+    try {
+      const res = await axios.put(
+        `${API_BASE_URL}/member/${editMember.member_id}`,
+        editMember,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMembers((prev) =>
+        prev.map((m) => (m.member_id === res.data.member_id ? res.data : m))
+      );
+      handleClose();
+    } catch (err) {
+      console.error('Update failed', err);
+      setError('Failed to update member');
+    }
+  };
+
   const filteredMembers = members.filter((m) => {
     const query = searchQuery.toLowerCase();
     return Object.values(m).some(val =>
-      val &&
-      val.toString().toLowerCase().includes(query)
+      val && val.toString().toLowerCase().includes(query)
     );
   });
 
@@ -103,9 +120,7 @@ const MemberList = () => {
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
       )}
 
       {!loading && !error && filteredMembers.length === 0 && (
@@ -122,9 +137,9 @@ const MemberList = () => {
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Sex</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Age</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Profession</TableCell>
-              <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Mobile</TableCell>
-<TableCell sx={{ color: '#fff', fontWeight: 600 }}>Residing</TableCell>
-<TableCell sx={{ color: '#fff', fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Mobile</TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Residing</TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -135,13 +150,12 @@ const MemberList = () => {
                   <TableCell>{m.sex || '-'}</TableCell>
                   <TableCell>{m.age ?? '-'}</TableCell>
                   <TableCell>{m.profession || '-'}</TableCell>
-              <TableCell>{m.mobile || '-'}</TableCell>
-<TableCell>{m.residing_here ? 'Yes' : 'No'}</TableCell>
-<TableCell>
-  <Button variant="outlined" size="small" onClick={() => handleView(m)}>
-    View
-  </Button>
-</TableCell>
+                  <TableCell>{m.mobile || '-'}</TableCell>
+                  <TableCell>{m.residing_here ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>
+                    <Button variant="outlined" size="small" onClick={() => handleView(m)}>View</Button>
+                    <Button variant="contained" size="small" sx={{ ml: 1 }} onClick={() => handleEdit(m)}>Edit</Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -149,56 +163,93 @@ const MemberList = () => {
         </TableContainer>
       )}
 
-      {/* Dialog for full member details */}
-      <Dialog open={dialogOpen} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Member Details</DialogTitle>
+      <Dialog open={dialogOpen} onClose={handleClose} maxWidth="xl" fullWidth>
+        <DialogTitle>{editMode ? 'Edit Member' : 'Member Details'}</DialogTitle>
         <DialogContent dividers>
-          {selectedMember && (
-            <Grid container spacing={2}>
-              {Object.entries({
-  'Member ID': selectedMember.member_id,
-  'Name': selectedMember.name,
-  'Sex': selectedMember.sex,
-  'Mobile': selectedMember.mobile,
-                'Date of Birth': formatDate(selectedMember.dob),
-                'Age': selectedMember.age,
-                'Relationship': selectedMember.relationship,
-                'Marital Status': selectedMember.marital_status,
-                'Qualification': selectedMember.qualification,
-                'Profession': selectedMember.profession,
-                'Residing Here': selectedMember.residing_here ? 'Yes' : 'No',
-                'Church Group': selectedMember.church_group,
-                'Active': selectedMember.active ? 'Yes' : 'No',
-                'Baptism Date': formatDate(selectedMember.baptism_date),
-                'Baptism Place': selectedMember.baptism_place,
-                'Holy Communion Date': formatDate(selectedMember.holy_communion_date),
-                'Holy Communion Place': selectedMember.holy_communion_place,
-                'Confirmation Date': formatDate(selectedMember.confirmation_date),
-                'Confirmation Place': selectedMember.confirmation_place,
-                'Marriage Date': formatDate(selectedMember.marriage_date),
-                'Marriage Place': selectedMember.marriage_place,
-              }).map(([label, value]) => (
-                <Grid item xs={12} sm={6} key={label}>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: 'text.secondary', fontWeight: 500 }}
-                  >
-                    {label}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'text.primary', fontWeight: 600 }}
-                    gutterBottom
-                  >
-                    {value || '-'}
-                  </Typography>
-                </Grid>
-              ))}
-            </Grid>
-          )}
+          <Grid container spacing={2}>
+            {editMember && Object.entries(editMember)
+              .filter(([field]) => !['id', 'member_id', 'family_id'].includes(field))
+              .map(([field, value]) => {
+                const isDate = field.endsWith('_date') || field === 'dob';
+                const isBoolean = ['active', 'residing_here'].includes(field);
+                const handleChange = (e) =>
+                  setEditMember(prev => ({
+                    ...prev,
+                    [field]: isBoolean ? e.target.checked : e.target.value
+                  }));
+
+                const label = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                if (!editMode) {
+                  return (
+                    <Grid item xs={12} sm={2.4} key={field}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>{label}</Typography>
+                      <Typography variant="body2" fontWeight={600}>{
+                        isDate && value ? new Date(value).toLocaleDateString('en-GB') :
+                        isBoolean ? (value ? 'Yes' : 'No') :
+                        value || '-'
+                      }</Typography>
+                    </Grid>
+                  );
+                }
+
+                if (['sex', 'marital_status', 'relationship'].includes(field)) {
+                  const options = {
+                    sex: ['Male', 'Female', 'Transgender'],
+                    marital_status: ['Single', 'Married', 'Divorced', 'Widowed'],
+                    relationship: ['Head', 'Spouse', 'Child', 'Parent', 'Other']
+                  };
+
+                  return (
+                    <Grid item xs={12} sm={2.4} key={field}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>{label}</InputLabel>
+                        <Select value={value || ''} label={label} onChange={handleChange}>
+                          <MenuItem value="">--Select--</MenuItem>
+                          {options[field].map(opt => (
+                            <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  );
+                }
+
+                if (isBoolean) {
+                  return (
+                    <Grid item xs={12} sm={2.4} key={field}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>{label}</Typography>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <input
+                          type="checkbox"
+                          checked={!!value}
+                          onChange={handleChange}
+                        />
+                        <Typography>{value ? 'Yes' : 'No'}</Typography>
+                      </Box>
+                    </Grid>
+                  );
+                }
+
+                return (
+                  <Grid item xs={12} sm={2.4} key={field}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type={isDate ? 'date' : 'text'}
+                      label={label}
+                      value={isDate && value ? new Date(value).toISOString().split('T')[0] : value || ''}
+                      onChange={handleChange}
+                      InputLabelProps={isDate ? { shrink: true } : undefined}
+                    />
+                  </Grid>
+                );
+              })}
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} variant="contained">Close</Button>
+          <Button onClick={handleClose} variant="outlined">Close</Button>
+          {editMode && <Button onClick={handleSave} variant="contained">Save</Button>}
         </DialogActions>
       </Dialog>
     </Box>

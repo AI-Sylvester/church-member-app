@@ -21,31 +21,45 @@ import {
   FormControlLabel,
   Switch,
   Avatar,
+  Tabs,
+  Tab,Stack ,
 } from '@mui/material';
 import API_BASE_URL from '../config';
-
+import PrintIcon from '@mui/icons-material/Print';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import SearchIcon from '@mui/icons-material/Search';
+import RoomIcon from '@mui/icons-material/Room';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import MapSelector from './Mapselector'; // adjust path if needed
 const FamilyList = () => {
   const [families, setFamilies] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('active'); // ✅ Added this line
 
   const [viewOpen, setViewOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [imageOpen, setImageOpen] = useState(false);
-
+const [showEditMap, setShowEditMap] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState(null);
   const [editData, setEditData] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [editFile, setEditFile] = useState(null);
   const [saving, setSaving] = useState(false);
-
+const [searchResults, setSearchResults] = useState({ active: false, inactive: false });
   const token = localStorage.getItem('token');
 
   const fetchFamilies = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/family/list`, {
+      const url =
+        activeTab === 'inactive'
+          ? `${API_BASE_URL}/family/list-inactive`
+          : `${API_BASE_URL}/family/list`;
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setFamilies(res.data);
@@ -56,38 +70,85 @@ const FamilyList = () => {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, activeTab]);
 
   useEffect(() => {
     fetchFamilies();
   }, [fetchFamilies]);
+const handleSearch = () => {
+  const lower = searchQuery.toLowerCase().trim();
+  if (!lower) {
+    setSearchResults({ active: false, inactive: false });
+    fetchFamilies();
+    return;
+  }
 
-  const handleView = async (familyId) => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/family/${familyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setSelectedFamily(res.data);
-      setViewOpen(true);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch family details');
-    }
-  };
+  const activeHasResults = families.some((fam) =>
+    Object.values(fam).some((val) =>
+      val !== null && val !== undefined && val.toString().toLowerCase().includes(lower)
+    )
+  );
 
-  const handleEdit = async (familyId) => {
-    try {
-      const res = await axios.get(`${API_BASE_URL}/family/${familyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setEditData(res.data);
-      setEditFile(null);
-      setEditOpen(true);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to fetch family details');
+  // For inactive tab, we need to fetch inactive families and check
+  // For simplicity, you can call API once again or if you have all data, filter similarly
+  // Let's assume you want to call API for inactive data:
+
+  axios.get(`${API_BASE_URL}/family/list-inactive`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => {
+    const inactiveFamilies = res.data;
+    const inactiveHasResults = inactiveFamilies.some((fam) =>
+      Object.values(fam).some((val) =>
+        val !== null && val !== undefined && val.toString().toLowerCase().includes(lower)
+      )
+    );
+    setSearchResults({ active: activeHasResults, inactive: inactiveHasResults });
+  }).catch(() => {
+    setSearchResults({ active: activeHasResults, inactive: false });
+  });
+};
+
+const handleView = async (familyId) => {
+  try {
+    let url;
+    if (activeTab === 'inactive') {
+      url = `${API_BASE_URL}/family/list-inactive/${familyId}`;
+    } else {
+      url = `${API_BASE_URL}/family/${familyId}`;
     }
-  };
+
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setSelectedFamily(res.data);
+    setViewOpen(true);
+  } catch (err) {
+    console.error('Error fetching family details:', err);
+    setError('Failed to fetch family details');
+  }
+};
+const handleEdit = async (familyId) => {
+  try {
+    let url;
+    if (activeTab === 'inactive') {
+      url = `${API_BASE_URL}/family/list-inactive/${familyId}`;
+    } else {
+      url = `${API_BASE_URL}/family/byFamilyId/${familyId}`;
+    }
+
+    const res = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setEditData(res.data);
+    setEditFile(null);
+    setEditOpen(true);
+  } catch (err) {
+    console.error(err);
+    setError('Failed to fetch family details');
+  }
+};
 
   const handleEditChange = (field, value) => {
     setEditData((prev) => ({
@@ -134,7 +195,6 @@ const FamilyList = () => {
     }
   };
 
-  // Filter and sort families
   const filteredFamilies = useMemo(() => {
     const lower = searchQuery.toLowerCase();
     const filtered = families.filter((fam) =>
@@ -147,22 +207,108 @@ const FamilyList = () => {
     return filtered.sort((a, b) => a.family_id - b.family_id);
   }, [families, searchQuery]);
 
+const exportPDF = () => {
+  const doc = new jsPDF('p', 'pt', 'a4');
+
+  autoTable(doc, {
+    head: [['Family ID', 'Name', 'Mobile 1', 'Mobile 2', 'Anbiyam', 'Address']],
+    body: filteredFamilies.map(fam => [
+      fam.family_id,
+      fam.head_name,
+      fam.mobile_number || '',
+      fam.mobile_number2 || '',
+      fam.anbiyam || '',
+      [fam.address_line1, fam.address_line2, fam.city, fam.pincode]
+        .filter(Boolean)
+        .join(', ')
+    ]),
+    styles: {
+      fontSize: 10,
+      textColor: [0, 0, 0],
+      halign: 'left',
+      cellPadding: 4,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.1,
+    },
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    alternateRowStyles: {
+      fillColor: [240, 240, 240],
+    },
+    startY: 40,
+    margin: { top: 40, left: 20, right: 20 },
+    theme: 'grid',
+  });
+
+  // Format the date and time
+  const now = new Date();
+  const timestamp = now
+    .toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    .replace(/[/:, ]/g, '-'); // Replace problematic characters
+
+  doc.save(`family-records-${timestamp}.pdf`);
+};
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h5" fontWeight={700} color="#0B3D91" mb={2}>
         Family Records
       </Typography>
 
-      <TextField
-        label="Search"
-        variant="outlined"
-        size="small"
-        fullWidth
-        sx={{ mb: 3 }}
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search by any field..."
-      />
+<Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+  <TextField
+    label="Search"
+    variant="outlined"
+    size="small"
+    fullWidth
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    placeholder="Search by any field..."
+    onKeyDown={(e) => {
+      if (e.key === 'Enter') {
+        handleSearch();
+      }
+    }}
+  />
+  <Button
+    variant="contained"
+    size="small"
+    onClick={handleSearch}
+    sx={{ height: '40px', minWidth: '40px', p: 0 }}
+  >
+    <SearchIcon />
+  </Button>
+  <Button
+    variant="outlined"
+    size="small"
+    onClick={exportPDF}
+    sx={{ height: '40px', minWidth: '40px', p: 0 }}
+  >
+    <PrintIcon />
+  </Button>
+</Stack>
+
+      {/* ✅ Tabs for active/inactive */}
+    <Tabs
+  value={activeTab}
+  onChange={(e, newValue) => setActiveTab(newValue)}
+  sx={{ mb: 2 }}
+>
+  <Tab label={`Active${searchResults.active ? ' *' : ''}`} value="active" />
+  <Tab label={`Inactive${searchResults.inactive ? ' *' : ''}`} value="inactive" />
+</Tabs>
+  
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
@@ -181,6 +327,7 @@ const FamilyList = () => {
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Head Name</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>City</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Mobile</TableCell>
+                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Anbiyam</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Active</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Picture</TableCell>
                 <TableCell sx={{ color: '#fff', fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
@@ -193,17 +340,17 @@ const FamilyList = () => {
                   <TableCell>{fam.head_name}</TableCell>
                   <TableCell>{fam.city}</TableCell>
                   <TableCell>{fam.mobile_number}</TableCell>
+                    <TableCell>{fam.anbiyam || '-'}</TableCell>
                   <TableCell>{fam.active ? 'Yes' : 'No'}</TableCell>
                   <TableCell>
                     {fam.family_pic ? (
                       <Avatar
-  variant="square"
-  src={`${API_BASE_URL}/uploads/${fam.family_pic}`}
-  alt={`${fam.head_name} picture`}
-  sx={{ width: 32, height: 32, cursor: 'pointer' }}
-  onClick={() => handleImageClick(fam.family_pic)}
-/>
-
+                        variant="square"
+                        src={`${API_BASE_URL}/uploads/${fam.family_pic}`}
+                        alt={`${fam.head_name} picture`}
+                        sx={{ width: 32, height: 32, cursor: 'pointer' }}
+                        onClick={() => handleImageClick(fam.family_pic)}
+                      />
                     ) : (
                       <Typography color="text.secondary">No Image</Typography>
                     )}
@@ -244,7 +391,6 @@ const FamilyList = () => {
           <Button onClick={() => setViewOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-
       {/* Edit Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Edit Family Details</DialogTitle>
@@ -264,7 +410,31 @@ const FamilyList = () => {
               <TextField label="House Type" value={editData.house_type || ''} onChange={(e) => handleEditChange('house_type', e.target.value)} fullWidth />
               <TextField label="Subscription" value={editData.subscription || ''} onChange={(e) => handleEditChange('subscription', e.target.value)} fullWidth />
               <FormControlLabel control={<Switch checked={!!editData.active} onChange={(e) => handleEditChange('active', e.target.checked)} />} label="Active" sx={{ gridColumn: 'span 2' }} />
-              <TextField label="Location" value={editData.location || ''} onChange={(e) => handleEditChange('location', e.target.value)} fullWidth />
+             <TextField
+  label="Location"
+  value={editData.location || ''}
+  onChange={(e) => handleEditChange('location', e.target.value)}
+  fullWidth
+  InputProps={{
+    endAdornment: (
+      <InputAdornment position="end">
+        <IconButton onClick={() => setShowEditMap((prev) => !prev)}>
+          <RoomIcon color="primary" />
+        </IconButton>
+      </InputAdornment>
+    ),
+  }}
+/>{showEditMap && (
+  <Box sx={{ gridColumn: 'span 2', height: 250, mt: 1 }}>
+    <MapSelector
+      value={editData?.location}
+      onChange={(loc) => {
+        handleEditChange('location', loc);
+        setShowEditMap(false); // close after selection
+      }}
+    />
+  </Box>
+)}
               <TextField label="Anbiyam" value={editData.anbiyam || ''} onChange={(e) => handleEditChange('anbiyam', e.target.value)} fullWidth />
               <TextField label="Cemetery Number" value={editData.cemetery_number || ''} onChange={(e) => handleEditChange('cemetery_number', e.target.value)} fullWidth />
               <TextField label="Old Card Number" value={editData.old_card_number || ''} onChange={(e) => handleEditChange('old_card_number', e.target.value)} fullWidth />

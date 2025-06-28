@@ -10,13 +10,19 @@ import {
   Typography,
   Checkbox,
   FormControlLabel,
-
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  InputAdornment,
+Autocomplete ,
   Paper
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import RoomIcon from '@mui/icons-material/Room'; // map pin icon
 import API_BASE_URL from '../config';
-
+import MapSelector from './Mapselector';
 const AddFamily = () => {
   const navigate = useNavigate();
 
@@ -40,14 +46,15 @@ const AddFamily = () => {
     active: true,
     location: ''
   };
-
+const [mapDialogOpen, setMapDialogOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [file, setFile] = useState(null);
   const [anbiyamList, setAnbiyamList] = useState([]);
   const [family, setFamily] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
-
+const [previewUrl, setPreviewUrl] = useState('');
+const [uploadSuccess, setUploadSuccess] = useState(false);
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm((prev) => ({
@@ -95,19 +102,22 @@ const AddFamily = () => {
     }
   };
 
-  const resetForm = () => {
-    setForm(initialForm);
-    setFamily(null);
-    setError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+ const resetForm = () => {
+  setForm(initialForm);
+  setFamily(null);
+  setFile(null);              // Clear selected file
+  setPreviewUrl('');          // Clear image preview URL
+  setUploadSuccess(false);    // Hide upload success message
+  setError('');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
   return (
   <Box>
     {/* Heading */}
     <Box
       sx={{
-        backgroundColor: '#FFD700',
+        backgroundColor: '#ededda',
         color: '#000',
         p: 2,
         borderRadius: 2,
@@ -179,15 +189,25 @@ const AddFamily = () => {
             fullWidth
           />
         </Box>
-              <Box sx={{ flex: '1 1 23%', minWidth: '230px' }}>
-          <TextField
-            label="Location"
-            name="location"
-            value={form.location}
-            onChange={handleChange}
-            fullWidth
-          />
-        </Box>
+           <Box sx={{ flex: '1 1 23%', minWidth: '230px' }}>
+  <TextField
+    label="Location"
+    name="location"
+    value={form.location}
+    onChange={handleChange}
+    fullWidth
+    InputProps={{
+      endAdornment: (
+        <InputAdornment position="end">
+          <IconButton onClick={() => setMapDialogOpen(true)}>
+            <RoomIcon color="primary" />
+          </IconButton>
+        </InputAdornment>
+      ),
+    }}
+  />
+</Box>
+
    <Box sx={{ flex: '1 1 23%', minWidth: '230px' }}>
           <FormControl fullWidth>
             <InputLabel>House Type</InputLabel>
@@ -204,22 +224,18 @@ const AddFamily = () => {
           </FormControl>
         </Box>
         <Box sx={{ flex: '1 1 23%', minWidth: '230px' }}>
-          <FormControl fullWidth>
-            <InputLabel>Anbiyam</InputLabel>
-            <Select
-              name="anbiyam"
-              value={form.anbiyam}
-              onChange={handleChange}
-              label="Anbiyam"
-            >
-              <MenuItem value="">Select</MenuItem>
-              {anbiyamList.map((item) => (
-                <MenuItem key={item.id} value={item.name}>
-                  {item.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+         <Autocomplete
+  fullWidth
+  options={anbiyamList.map((item) => item.name)}
+  value={form.anbiyam || null}
+  onChange={(event, newValue) => {
+    setForm((prev) => ({ ...prev, anbiyam: newValue || '' }));
+  }}
+  renderInput={(params) => (
+    <TextField {...params} label="Anbiyam" />
+  )}
+  freeSolo
+/>
         </Box>
         <Box sx={{ flex: '1 1 23%', minWidth: '230px' }}>
           <TextField
@@ -330,22 +346,42 @@ const AddFamily = () => {
       <Box sx={{ mt: 2 }}>
         <Button variant="outlined" component="label" fullWidth>
           Upload Family Picture
-          <input
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => setFile(e.target.files[0])}
-          />
+         <input
+  type="file"
+  accept="image/*"
+  hidden
+  onChange={(e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+      setUploadSuccess(true);
+    }
+  }}
+/>
         </Button>
       </Box>
-
+{uploadSuccess && (
+  <Box mt={2} textAlign="center">
+    <Typography color="success.main">Image uploaded successfully!</Typography>
+    {previewUrl && (
+      <Box mt={1}>
+        <img
+          src={previewUrl}
+          alt="Preview"
+          style={{ width: 200, borderRadius: 8 }}
+        />
+      </Box>
+    )}
+  </Box>
+)}
       {/* Create button centered */}
       <Box sx={{ mt: 4, textAlign: 'center' }}>
         <Button
           variant="contained"
           onClick={createFamily}
           sx={{
-            backgroundColor: '#FFD700',
+            backgroundColor: '#c5c5be',
             color: '#000',
             fontWeight: 'bold',
             px: 6,
@@ -395,7 +431,22 @@ const AddFamily = () => {
         </Typography>
       )}
     </Paper>
+    <Dialog open={mapDialogOpen} onClose={() => setMapDialogOpen(false)} maxWidth="sm" fullWidth>
+  <DialogTitle>Select Location</DialogTitle>
+  <DialogContent>
+    <Box sx={{ height: 300 }}>
+      <MapSelector
+        value={form.location}
+        onChange={(loc) => {
+          setForm(prev => ({ ...prev, location: loc }));
+          setMapDialogOpen(false); // close after selection
+        }}
+      />
+    </Box>
+  </DialogContent>
+</Dialog>
   </Box>
+  
 );
 
 
