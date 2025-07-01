@@ -40,7 +40,7 @@ import axios from 'axios';
 const drawerWidth = 280;
 
 const Layout = ({ children }) => {
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);

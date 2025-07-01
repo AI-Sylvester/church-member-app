@@ -279,7 +279,7 @@ const AddMember = () => {
           value={sex}
           onChange={(e) => setSex(e.target.value)}
           label="Sex"
-          disabled={headAsMember}
+         
         >
           <MenuItem value="">--Select--</MenuItem>
           <MenuItem value="Male">Male</MenuItem>
@@ -306,7 +306,7 @@ const AddMember = () => {
           value={maritalStatus}
           onChange={(e) => setMaritalStatus(e.target.value)}
           label="Marital Status"
-          disabled={headAsMember}
+          
         >
           <MenuItem value="">--Select--</MenuItem>
           <MenuItem value="Single">Single</MenuItem>
@@ -339,7 +339,7 @@ const AddMember = () => {
         label="Qualification"
         value={qualification}
         onChange={(e) => setQualification(e.target.value)}
-        disabled={headAsMember}
+      
         fullWidth
       />
     </Box>
@@ -348,7 +348,7 @@ const AddMember = () => {
         label="Profession"
         value={profession}
         onChange={(e) => setProfession(e.target.value)}
-        disabled={headAsMember}
+        
         fullWidth
       />
     </Box>

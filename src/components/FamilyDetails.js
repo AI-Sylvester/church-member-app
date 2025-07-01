@@ -3,14 +3,11 @@ import axios from 'axios';
 import {
   Box,
   Container,
-  Typography,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
+   TextField,
+   Typography,
   Card,
   CircularProgress,
-  Table,
+  Table,Autocomplete ,
   TableBody,
   TableCell,
   TableContainer,
@@ -290,16 +287,32 @@ yPos += 60; // More space after title
           Family Profile
         </Typography>
 
-        <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Select Family ID</InputLabel>
-          <Select value={selectedId} label="Select Family ID" onChange={handleIdChange}>
-            {familyIds.map((id) => (
-              <MenuItem key={id} value={id}>
-                {id}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      <Autocomplete
+  freeSolo
+  disableClearable
+  options={familyIds}
+  value={selectedId}
+  onInputChange={(event, newValue) => {
+    setSelectedId(newValue);
+  }}
+  onChange={(event, newValue) => {
+    setSelectedId(newValue);
+    handleIdChange({ target: { value: newValue } });
+  }}
+  renderInput={(params) => (
+    <TextField
+      {...params}
+      label="Select or Type Family ID"
+      size="small"
+      InputProps={{
+        ...params.InputProps,
+        type: 'search',
+      }}
+    />
+  )}
+  sx={{ minWidth: 200 }}
+/>
+
       </Box>
 
       {(loadingFamily || loadingMembers) && (
